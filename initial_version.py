@@ -85,6 +85,7 @@ def main(confidence_value, sleep_time, location_name, camera_index):
     finally: 
         cam.release()
     
+    cam.release()
     
         
 if __name__ == "__main__":
