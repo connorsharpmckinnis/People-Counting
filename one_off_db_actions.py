@@ -1,18 +1,20 @@
 import sqlite3
 
-command = """ 
-    DELETE FROM counts 
-    WHERE timestamp <= ?
-    """
+LOCAL_DB = "offline_cache.db"
 
-cutoff = "2025-10-22 16:45:48"
-
-conn = sqlite3.connect("people_counts.db")
-cursor = conn.cursor()
-
-cursor.execute(command, (cutoff,))
-
-print(f"Deleted {cursor.rowcount} rows")
-
-conn.commit()
-conn.close()
+def init_local_db():
+    """Ensure local cache table exists."""
+    conn = sqlite3.connect(LOCAL_DB)
+    c = conn.cursor()
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS local_cache (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            location TEXT,
+            timestamp TEXT,
+            count INTEGER
+        )
+    """)
+    conn.commit()
+    conn.close()
+    
+init_local_db()
