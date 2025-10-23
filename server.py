@@ -9,7 +9,7 @@ app = FastAPI()
 
 class CountData(BaseModel):
     location: str
-    timestamp: str = None
+    timestamp: str
     count: int
     
     
