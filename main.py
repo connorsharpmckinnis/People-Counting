@@ -91,12 +91,16 @@ def add_count_to_db(location: str, count: int):
         "count": count
     }
             
-    try:
-        response = requests.post(f"{SERVER_URL}/add_count", json=payload, timeout=3)
-        print(response.json())
-        upload_local_cache()
-    except Exception as e:
-        print("Failed: ", e)
+    if server_is_reachable():
+        try:
+            response = requests.post(f"{SERVER_URL}/add_count", json=payload, timeout=3)
+            print(response.json())
+            upload_local_cache()  # push any stored data now that we're online
+        except Exception as e:
+            print("Upload failed, saving locally:", e)
+            save_locally(location, timestamp, count)
+    else:
+        save_locally(location, timestamp, count)
 
 
 def main(confidence_value, sleep_time, location_name, camera_index):
