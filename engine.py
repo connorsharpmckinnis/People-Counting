@@ -54,6 +54,44 @@ class DetectionEngine:
 
         return DetectionResult(boxes, scores, class_ids, meta | {"class_names": class_names})
     
+    def detect_and_track(self, image, classes_to_detect=None):
+        results = self.model.track(
+            image,
+            persist=True,
+            conf=self.confidence_threshold,
+            device=self.device,
+            tracker="bytetrack.yaml"
+        )[0]
+
+        boxes, scores, class_ids, track_ids = [], [], [], []
+
+        for box, score, cls, tid in zip(results.boxes.xyxy, results.boxes.conf, results.boxes.cls, results.boxes.id):
+            class_id = int(cls)
+            if classes_to_detect and class_id not in classes_to_detect:
+                continue
+            
+            boxes.append(box.tolist())
+            scores.append(float(score))
+            class_ids.append(class_id)
+            track_ids.append(int(tid) if tid is not None else -1)
+
+        boxes = np.array(boxes)
+        scores = np.array(scores)
+        class_ids = np.array(class_ids)
+        track_ids = np.array(track_ids)
+
+        class_names = [self.class_names[cid] for cid in class_ids]
+
+        meta = {
+            "num_detections": len(boxes),
+            "track_ids": track_ids,
+            "model_name": str(self.model),
+            "device": self.device,
+        }
+
+        return DetectionResult(boxes, scores, class_ids, meta | {"class_names": class_names})
+    
+    
 class AnnotationEngine:
     def __init__(self):
         pass  # No config needed yet, could add font/line width overrides later
@@ -91,6 +129,11 @@ class Orchestrator:
         result = self.engine.detect(image, classes_to_detect)
         annotated = self.annotator.annotate(image, result)
         
+        
+        counts = {}
+        for name in result.class_names:
+            counts[name] = counts.get(name, 0) + 1
+
         cv2.imshow("Annotated", annotated)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
@@ -98,18 +141,24 @@ class Orchestrator:
     
     def analyze_video(self, video_path, classes_to_detect=None):
         cap = cv2.VideoCapture(video_path)
+        unique_ids = {}
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
                 break
-            result = self.engine.detect(frame, classes_to_detect)
+            result = self.engine.detect_and_track(frame, classes_to_detect)
+            print(result)
+            for i, tid in enumerate(result.meta["track_ids"]):
+                if tid != -1:
+                    obj_class = result.class_names[i]
+                    unique_ids[tid] = obj_class
             annotated = self.annotator.annotate(frame, result)
             cv2.imshow("Annotated", annotated)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         cap.release()
         cv2.destroyAllWindows()
-        pass
+        return unique_ids
 
     
     
@@ -121,8 +170,12 @@ def main():
 
     orchestrator = Orchestrator(engine, annotator)
 
-    orchestrator.analyze_video("4791734-hd_1920_1080_30fps.mp4")
+    ids = orchestrator.analyze_video("4791734-hd_1920_1080_30fps.mp4")
+    counts = {}
+    for cls in ids.values():
+        counts[cls] = counts.get(cls, 0) + 1
 
+    print(counts)
 
 
 if __name__ == "__main__": 
