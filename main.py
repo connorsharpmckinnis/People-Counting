@@ -6,7 +6,7 @@ import sqlite3
 import requests
 
 model = YOLO("yolov11n.pt")
-SERVER_IP = "10.9.81.115"
+SERVER_IP = "10.9.81.124"
 SERVER_URL = f"http://{SERVER_IP}:8000"
 LOCAL_DB = "offline_cache.db"
 
@@ -93,15 +93,16 @@ def add_count_to_db(location: str, count: int):
             
     if server_is_reachable():
         try:
+            upload_local_cache()  # push any stored data now that we're online
+
             response = requests.post(f"{SERVER_URL}/add_count", json=payload, timeout=3)
             print(response.json())
-            upload_local_cache()  # push any stored data now that we're online
         except Exception as e:
             print("Upload failed, saving locally:", e)
             save_locally(location, timestamp, count)
     else:
+        print("Server offline. Saving locally")
         save_locally(location, timestamp, count)
-
 
 def main(confidence_value, sleep_time, location_name, camera_index):
     confidence = confidence_value
