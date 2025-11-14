@@ -4,7 +4,7 @@ import time
 import datetime
 import sqlite3
 import requests
-#from picamera2 import Picamera2
+from picamera2 import Picamera2
 
 model = YOLO("yolov11n.pt")
 SERVER_IP = "10.9.81.124"
@@ -13,9 +13,9 @@ LOCAL_DB = "offline_cache.db"
 
 def take_picture(camera, mode):
     if mode == "PI":
-        #img = cam.capture_array("main")
-        #return img
-        pass
+        img = cam.capture_array("main")
+        img = cv2.cvtColor(img, cv2.COLOR_RGBA2BGR)
+        return img
     
     cam = camera
     for _ in range(3):
@@ -83,6 +83,47 @@ def server_is_reachable():
         return r.status_code == 200
     except Exception:
         return False
+    
+def test_camera_view(camera_index=0, mode="USB"):
+    """
+    Shows a live preview of what the camera sees. Press 'q' to exit.
+    """
+    if mode == "USB":
+        cam = cv2.VideoCapture(camera_index)
+    elif mode == "PI":
+        from picamera2 import Picamera2
+        cam = Picamera2()
+        cam.configure(cam.create_preview_configuration())
+        cam.set_controls({"AfMode": 2})  # continuous autofocus
+        cam.start()
+
+    print("Starting camera test. Press 'q' to quit.")
+    
+    try:
+        while True:
+            if mode == "USB":
+                ret, frame = cam.read()
+            elif mode == "PI":
+                frame = cam.capture_array("main")
+                frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
+                ret = True
+
+            if not ret:
+                print("Failed to grab frame")
+                break
+
+            cv2.imshow("Camera Test", frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+    finally:
+        if mode == "USB":
+            cam.release()
+        elif mode == "PI":
+            cam.close()
+        cv2.destroyAllWindows()
+        print("Camera test ended.")
+
 
 
 def add_count_to_db(location: str, count: int):
@@ -119,7 +160,9 @@ def main(confidence_value, sleep_time, location_name, camera_index, mode="USB"):
     if mode == "USB":   
         cam = cv2.VideoCapture(camera_index)
     elif mode == "PI":
-        #cam = Picamera2()
+        cam = Picamera2()
+        cam.set_controls({"AfMode": 2})
+        cam.start()
         pass
 
     try:
@@ -137,8 +180,9 @@ def main(confidence_value, sleep_time, location_name, camera_index, mode="USB"):
         if mode == "USB":
             cam.release()
         elif mode == "PI":
-            #cam.close()
+            cam.close()
             pass    
         
 if __name__ == "__main__":
+    #test_camera_view(mode="PI")
     main(0.6, 5, "Innovation Office", 1)

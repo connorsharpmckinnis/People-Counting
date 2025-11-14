@@ -1,16 +1,18 @@
-In /etc/systemd/system/people-count.service:
+In /etc/systemd/system/people-counting.service:
 ---
 
 [Unit]
-Description=People Counting Script
+Description=Camera uploader
 
 [Service]
-ExecStart=/home/pi/venv/bin/python /home/pi/Desktop/People-Counting/main.py
-WorkingDirectory=/home/pi/Desktop/People-Counting
-StandardOutput=journal
-StandardError=journal
+Type=simple
+ExecStart=/usr/bin/python3 /home/connormckinnis/Desktop/People-Counting/main.py
+WorkingDirectory=/home/connormckinnis/Desktop/People/Counting
 Restart=always
+RestartSec=5
 User=pi
+
+ExecStartPre=/bin/sleep 5
 
 [Install]
 WantedBy=multi-user.target
