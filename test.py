@@ -1,12 +1,41 @@
 ## For use on Raspberry Pi
 
 
-from picamera2 import Picamera2
+from engine import DetectionEngine, AnnotationEngine, Orchestrator
+import cv2
 import time
+import numpy as np
 
-camera = Picamera2()
-camera.start()
-time.sleep(1)
+model_path = "yolo11n.pt"
+mode = "PC"
 
-image_array = camera.capture_array("main")
-print(f"Captured array: {image_array}")
+if mode == "PI":
+    from picamera2 import Picamera2
+    camera = Picamera2()
+    camera.set_controls({"AfMode": 2})
+
+    camera.start()
+    time.sleep(1)
+elif mode == "PC":
+    camera = cv2.VideoCapture(0)
+    
+orch = Orchestrator(DetectionEngine(model_path, 0.3, "cpu", False), AnnotationEngine())
+
+def take_picture():
+    if mode == "PI":
+        image = camera.capture_array("main")
+        return image
+    elif mode == "PC":
+        ok, image = camera.read()
+        if ok: 
+            return image
+
+while True: 
+    image = take_picture()
+    annotated_image = orch.analyze_image(image)
+    cv2.imshow("test", annotated_image)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break   
+    time.sleep(5) 
+
+cv2.destroyAllWindows()

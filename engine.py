@@ -124,7 +124,11 @@ class Orchestrator:
         pass
     
     def analyze_image(self, image, classes_to_detect=None):
-        image = cv2.imread(image)
+        if isinstance(image, str): 
+            image = cv2.imread(image)
+        elif isinstance(image, np.ndarray):
+            image = image
+        
         
         result = self.engine.detect(image, classes_to_detect)
         annotated = self.annotator.annotate(image, result)
@@ -134,9 +138,6 @@ class Orchestrator:
         for name in result.class_names:
             counts[name] = counts.get(name, 0) + 1
 
-        cv2.imshow("Annotated", annotated)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
         return annotated
     
     def analyze_video(self, video_path, classes_to_detect=None):
