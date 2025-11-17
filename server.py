@@ -103,7 +103,7 @@ def start_mqtt():
 
 if __name__ == "__main__":
     
-    mqtt_thread = threading.Thread(target=start_mqtt, daemon=True)
-    mqtt_thread.start()
+    #mqtt_thread = threading.Thread(target=start_mqtt, daemon=True)
+    #mqtt_thread.start()
     
     uvicorn.run(app, host="0.0.0.0", port=8000)

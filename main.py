@@ -185,4 +185,4 @@ def main(confidence_value, sleep_time, location_name, camera_index, mode="USB"):
         
 if __name__ == "__main__":
     #test_camera_view(mode="PI")
-    main(0.6, 5, "Innovation Office", 1)
+    main(0.6, 5, "Node X", 1, "PI")
