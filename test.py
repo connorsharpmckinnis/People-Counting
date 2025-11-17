@@ -24,6 +24,7 @@ orch = Orchestrator(DetectionEngine(model_path, 0.3, "cpu", False), AnnotationEn
 def take_picture():
     if mode == "PI":
         image = camera.capture_array("main")
+        image = cv2.cvtColor(image, cv2.COLOR_RGBA2BGR)
         return image
     elif mode == "PC":
         ok, image = camera.read()
