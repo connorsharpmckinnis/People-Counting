@@ -8,18 +8,19 @@ from picamera2 import Picamera2
 import paho.mqtt.client as mqtt
 
 
-model = YOLO("yolov11n.pt")
+model = YOLO("yolo11n.pt")
 SERVER_IP = "10.9.81.124"
 SERVER_URL = f"http://{SERVER_IP}:8000"
 LOCAL_DB = "offline_cache.db"
 
 def take_picture(camera, mode):
+    cam = camera
+
     if mode == "PI":
         img = cam.capture_array("main")
         img = cv2.cvtColor(img, cv2.COLOR_RGBA2BGR)
         return img
     
-    cam = camera
     for _ in range(3):
         ret, img = cam.read()
     

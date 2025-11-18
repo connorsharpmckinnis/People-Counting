@@ -3,6 +3,7 @@ from pydantic import BaseModel
 import sqlite3
 import datetime
 import uvicorn
+import ssl
 import paho.mqtt.client as mqtt
 import json
 import threading
@@ -67,43 +68,43 @@ def insert_count(location, timestamp, count):
         conn.close()
     except Exception as e:
         print("DB insert error:", e)
-
+        
 
 def on_connect(client, userdata, flags, rc):
-    print("Connected to MQTT with result code", rc)
-    client.subscribe(MQTT_TOPIC)
-
+    print("Connected with result:", rc)
+    client.subscribe("sensors/#")  # <— subscribe to whatever your Pis will publish
 
 def on_message(client, userdata, msg):
-    try:
-        payload = json.loads(msg.payload.decode("utf-8"))
+    payload = msg.payload.decode()
+    print(f"Received [{msg.topic}] {payload}")
+    insert_count(msg.topic, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), payload)
 
-        # Expecting: { "location": "...", "timestamp": "...", "count": int }
-        location = payload["location"]
-        timestamp = payload.get("timestamp") or datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        count = payload["count"]
-
-        insert_count(location, timestamp, count)
-
-        print(f"MQTT Insert OK: {location} @ {timestamp} = {count}")
-
-    except Exception as e:
-        print("MQTT message error:", e)
+def main():
+    BROKER = "h114ad14.ala.us-east-1.emqxsl.com"
+    PORT = 8883
+    USERNAME = "username"
+    PASSWORD = "password"
 
 
-def start_mqtt():
-    client = mqtt.Client()
+    client = mqtt.Client(client_id="laptop-server")
+    client.username_pw_set(USERNAME, PASSWORD)
+    client.tls_set(cert_reqs=ssl.CERT_REQUIRED)
+    client.connect(BROKER, PORT)
     client.on_connect = on_connect
     client.on_message = on_message
 
-    client.connect(MQTT_BROKER, 1883, 60)
-    client.loop_forever()  # blocking; that's why this runs in a thread
-
-
+    print("Listening… (Ctrl+C to quit)")
+    client.loop_forever()
 
 if __name__ == "__main__":
+
+    main()
     
-    #mqtt_thread = threading.Thread(target=start_mqtt, daemon=True)
-    #mqtt_thread.start()
     
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    
+    
+    
+    
+
+
+
