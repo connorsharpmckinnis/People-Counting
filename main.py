@@ -5,6 +5,8 @@ import datetime
 import sqlite3
 import requests
 from picamera2 import Picamera2
+import paho.mqtt.client as mqtt
+
 
 model = YOLO("yolov11n.pt")
 SERVER_IP = "10.9.81.124"
@@ -150,6 +152,10 @@ def add_count_to_db(location: str, count: int):
     else:
         print("Server offline. Saving locally")
         save_locally(location, timestamp, count)
+        
+def publish_count(count: int, topic: str, client: mqtt.Client):
+    client.publish(topic, count)
+
 
 def main(confidence_value, sleep_time, location_name, camera_index, mode="USB"):
     confidence = confidence_value
@@ -157,6 +163,19 @@ def main(confidence_value, sleep_time, location_name, camera_index, mode="USB"):
     location = location_name
     camera_index = camera_index
     mode = mode
+    
+    BROKER = "h114ad14.ala.us-east-1.emqxsl.com"
+    PORT = 8883
+    USERNAME = "username"
+    PASSWORD = "password"
+    TOPIC = f"sensors/{location}"
+
+    client = mqtt.Client()
+    client.username_pw_set(USERNAME, PASSWORD)
+    client.tls_set()  # Keep TLS; required by your broker
+    client.connect(BROKER, PORT)    
+    
+    
     if mode == "USB":   
         cam = cv2.VideoCapture(camera_index)
     elif mode == "PI":
@@ -170,7 +189,8 @@ def main(confidence_value, sleep_time, location_name, camera_index, mode="USB"):
             
             people = count_people(camera=cam, confidence_threshold=confidence, mode = mode)
             print(f"{people} people in the image")
-            add_count_to_db(location, people)
+            #add_count_to_db(location, people)
+            publish_count(people, TOPIC, client)
             
             time.sleep(sleep_time)
     except KeyboardInterrupt:
@@ -185,4 +205,10 @@ def main(confidence_value, sleep_time, location_name, camera_index, mode="USB"):
         
 if __name__ == "__main__":
     #test_camera_view(mode="PI")
-    main(0.6, 5, "Node X", 1, "PI")
+    main(
+        confidence_value=0.6, 
+        sleep_time=5, 
+        location_name="Node X", 
+        camera_index=1, 
+        mode="PI"
+    )
