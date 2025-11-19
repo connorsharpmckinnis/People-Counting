@@ -158,7 +158,7 @@ def publish_count(count: int, topic: str, client: mqtt.Client):
     client.publish(topic, count)
 
 
-def main(confidence_value, sleep_time, location_name, camera_index, mode="USB"):
+def main(confidence_value, sleep_time, location_name, camera_index, mode="USB", online=True):
     confidence = confidence_value
     sleep_time = sleep_time
     location = location_name
@@ -191,7 +191,11 @@ def main(confidence_value, sleep_time, location_name, camera_index, mode="USB"):
             people = count_people(camera=cam, confidence_threshold=confidence, mode = mode)
             print(f"{people} people in the image")
             #add_count_to_db(location, people)
-            publish_count(people, TOPIC, client)
+            if online: 
+                publish_count(people, TOPIC, client)
+            else:
+                now_timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                save_locally(location, now_timestamp, people)
             
             time.sleep(sleep_time)
     except KeyboardInterrupt:
@@ -211,5 +215,6 @@ if __name__ == "__main__":
         sleep_time=5, 
         location_name="Node X", 
         camera_index=1, 
-        mode="PI"
+        mode="PI",
+        online=True
     )
